@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Municipales : les résultats à Caen</title>
+
+	<meta charset=utf-8 />
+	<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+	
+	<script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.js'></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js" type="text/javascript"></script>
+	<script src="data/zonesT1.geojson"></script>
+	
+	<link href='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.css' rel='stylesheet' type='text/css'>
+	<link href='http://www.mon-caen.eu/wp-content/themes/linen_pro/stylesheets/fonts.css' rel='stylesheet' type='text/css'>
+	
+	<style>	
+		body {
+			margin:0;
+			padding:0;
+		}
+		#map {
+			position:absolute;
+			top:36px;
+			bottom:0;
+			width:100%;
+		}
+		.info {
+			padding: 6px 8px;
+			font: 13px Arial, Helvetica, sans-serif;
+			background: rgba(255,255,255,0.9);
+			box-shadow: 0 0 15px rgba(50,50,50,0.2);
+			border-radius: 2px;
+		}
+		.info h4 {
+			margin: 0 0 4px;
+			font-family:TSO,'Patua One',sans-serif;
+			font-size:20px;
+			color: #666;
+			width:265px;
+			font-weight:normal;
+		}
+
+		.info .bureau{
+			font-style:italic;
+			color:#777;
+			font-size:14px;
+			margin:0px;
+			padding:0px;
+		}
+
+		.info table{
+			border-collapse:collapse;
+			border:none;
+			margin:0;
+			padding:0;
+		}
+
+		.info table .barre{
+			width:50px;
+		}
+
+		.info table .nom_candidat{
+			font-weight:normal;
+		}
+
+		.info table .score_candidat{
+			font-weight:bold;
+		}
+
+		.info table .parti{
+			font-size:11px;
+			font-weight:bold;
+			opacity: 0.6;
+		}
+
+		.info table .eelv{
+			color:#61b942;
+		}
+		.info table .udi{
+			color:#34d8f3;
+		}
+		.info table .ps{
+			color:#ff67f1;
+		}
+		.info table .ump{
+			color:#566eff;
+		}
+		.info table .lo{
+			color:#ff1900;
+		}
+		.info table .dvg{
+			color:#ff3278;
+		}
+		.info table .fn{
+			color:#777;
+		}
+		path.leaflet-clickable{
+			cursor:pointer!important;
+		}
+		
+		.tabs {
+			width:900px;
+			margin:auto;
+		}
+		.tab {
+			float: left;
+			min-width:82px;
+		}
+		.tab label {
+			min-width:35px;
+			display:block;
+			background: #eee; 
+			padding: 10px; 
+			border: 1px solid #ccc; 
+			border-bottom:none;
+			margin-left: -1px; 
+			position: relative;
+			left: 1px; 
+			font-size:12px;
+			font-family:Arial;
+			text-align:center;
+			cursor:pointer;
+		}
+		.tab [type=radio] {
+			display: none;   
+		}
+		[type=radio]:checked ~ label {
+			background: white;
+			z-index:1;
+		}
+		[type=radio]:checked ~ label ~ .content {
+			z-index: 1;
+		}
+		label[for=tout]{
+			width:62px;
+		}
+		label[for=casevitz]{
+			width:94px;
+		}
+		label[for=adam]{
+			width:83px;
+		}
+		label[for=duron]{
+			width:80px;
+		}
+		label[for=duron]{
+			width:80px;
+		}
+		label[for=lorphelin]{
+			width:120px;
+		}
+		label[for=provote]{
+			width:94px;
+		}
+		label[for=bruneau]{
+			width:105px;
+		}
+		label[for=chapron]{
+			width:93px;
+		}
+	</style>
+</head>
+<body>
+
+<div class="tabs">
+	<div class="tab">
+	   <input type="radio" id="tout" name="candidat" checked>
+	   <label for="tout">Tout</label>
+	</div> 
+	<div class="tab">
+	   <input type="radio" id="casevitz" name="candidat">
+	   <label for="casevitz">P. Casevitz (LO)</label>
+
+	</div>  
+	<div class="tab">
+	   <input type="radio" id="adam" name="candidat">
+	   <label for="adam">E. Adam (DVG)</label>
+	</div>
+	<div class="tab">
+	   <input type="radio" id="duron" name="candidat">
+	   <label for="duron">P. Duron (PS)</label>
+	</div>
+	<div class="tab">
+	   <input type="radio" id="lorphelin" name="candidat">
+	   <label for="lorphelin">R. L'Orphelin (EELV)</label>
+	</div>
+	<div class="tab">
+	   <input type="radio" id="provote" name="candidat">
+	   <label for="provote">S. Provôté (UDI)</label>
+	</div>
+	<div class="tab">
+	   <input type="radio" id="bruneau" name="candidat">
+	   <label for="bruneau">J. Bruneau (UMP)</label>
+	</div>
+	<div class="tab">
+	   <input type="radio" id="chapron" name="candidat">
+	   <label for="chapron">P. Chapron (FN)</label>
+	</div>
+	
+</div>
+<div id='map'></div>
+<script>
+var colors = {
+    'lorphelin': '#61b942',
+	'provote': '#34d8f3',
+	'duron': '#ff67f1',
+	'bruneau': '#566eff',
+	'casevitz': '#ff1900',
+	'adam': '#ff3278',
+	'chapron': '#777',
+};
+
+function getColor(candidat) {
+	return colors[candidat];
+}
+
+function getWinner(feature){
+	var winner="lorphelin";
+	var num=feature.properties.lorphelin;
+	
+	if(feature.properties.provote>num){
+		winner="provote";
+		num=feature.properties.provote;
+	}
+	if(feature.properties.duron>num){
+		winner="duron";
+		num=feature.properties.duron;
+	}
+	if(feature.properties.bruneau>num){
+		winner="bruneau";
+		num=feature.properties.bruneau;
+	}
+	if(feature.properties.casevitz>num){
+		winner="casevitz";
+		num=feature.properties.casevitz;
+	}
+	if(feature.properties.adam>num){
+		winner="adam";
+		num=feature.properties.adam;
+	}
+	if(feature.properties.chapron>num){
+		winner="chapron";
+		num=feature.properties.chapron;
+	}
+		
+	return winner;
+
+}
+
+function style(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColor(getWinner(feature)),
+		fillOpacity: 0.6,
+	};
+}
+
+function highlightFeature(e) {
+    var layer = e.target;
+
+	info.update(layer.feature.properties);
+    layer.setStyle({
+        weight: 1.5,
+        color: '#333',
+		cursor:'pointer',
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+}
+
+function resetHighlight(e) {
+    data.setStyle(style);
+	lo.setStyle(styleLO);
+	dvg.setStyle(styleDVG);
+	ps.setStyle(stylePS);
+	eelv.setStyle(styleEELV);
+	udi.setStyle(styleUDI);
+	ump.setStyle(styleUMP);
+	fn.setStyle(styleFN);
+	info.update();
+}
+
+
+
+function zoomToFeature(e) {
+    map.fitBounds(e.target.getBounds());
+}
+
+function onEachFeature(feature, layer) {
+	layer.on({
+		mouseover: highlightFeature,
+		mouseout: resetHighlight,
+		click: zoomToFeature,
+	});
+}
+
+/* --------------- LO --------------- */
+
+function getColorLO(score) {
+    return score > 3 ? '#ef3b2c' :
+           score > 2 ? '#fb6a4a' :
+           score > 1 ? '#fc9272' :
+					   '#fee0d2';
+}
+
+function styleLO(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorLO(feature.properties.casevitz),
+		fillOpacity: 0.6,
+	};
+}
+
+/* --------------- DVG --------------- */
+
+function getColorDVG(score) {
+    return score > 9 ? '#bc1261' :
+           score > 7 ? '#ff1883' :
+           score > 5 ? '#fe5aa6' :
+					   '#fea0cb';
+}
+
+function styleDVG(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorDVG(feature.properties.adam),
+		fillOpacity: 0.6,
+	};
+}
+/* --------------- PS --------------- */
+
+function getColorPS(score) {
+    return score > 30 ? '#bc1261' :
+           score > 25 ? '#ff1883' :
+           score > 20 ? '#fe5aa6' :
+					   '#fea0cb';
+}
+
+function stylePS(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorPS(feature.properties.duron),
+		fillOpacity: 0.6,
+	};
+}
+/* --------------- EELV --------------- */
+
+function getColorEELV(score) {
+    return score > 15 ? '#006d2c' :
+           score > 10 ? '#41ab5d' :
+           score > 05 ? '#a1d99b' :
+					    '#e5f5e0';
+}
+
+function styleEELV(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorEELV(feature.properties.lorphelin),
+		fillOpacity: 0.6,
+	};
+}
+
+/* --------------- UDI --------------- */
+
+function getColorUDI(score) {
+    return score > 25 ? '#0089dc' :
+           score > 20 ? '#15aeff' :
+           score > 16 ? '#55caff' :
+					   '#abe5ff';
+}
+
+function styleUDI(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorUDI(feature.properties.provote),
+		fillOpacity: 0.6,
+	};
+}
+
+/* --------------- UMP --------------- */
+
+function getColorUMP(score) {
+    return score > 40 ? '#2c3985' :
+		   score > 35 ? '#34439b' :
+           score > 28 ? '#556dff' :
+           score > 22 ? '#8a99e9' :
+					   '#b9d0ff';
+}
+
+function styleUMP(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorUMP(feature.properties.bruneau),
+		fillOpacity: 0.6,
+	};
+}
+
+/* --------------- FN --------------- */
+
+function getColorFN(score) {
+    return score > 10 ? '#555' :
+           score > 7 ? '#777' :
+           score > 5 ? '#999' :
+					   '#BBB';
+}
+
+function styleFN(feature) {
+	return {
+		color: "#333",
+		weight: 0.3,
+		opacity: 0.7,
+		fillColor: getColorFN(feature.properties.chapron),
+		fillOpacity: 0.6,
+	};
+}
+
+/* -------------------------- */
+
+var info = L.control();
+
+info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+};
+
+info.update = function (props) {
+    this._div.innerHTML = (props ? '<h4>'+props.quartier+'</h4>'+'<p class="bureau">'+props.bureau+'</p><br/>'
+	+'<table>'
+	+'<tr><td class="barre"><canvas width="'+props.lorphelin+'" height="20" style="border:1px solid #61b942; background-color:#61b942; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Rudy L\'Orphelin <span class="parti eelv">(EELV)</span> :</td><td class="score_candidat">'+props.lorphelin+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.provote+'" height="20" style="border:1px solid #34d8f3; background-color:#34d8f3; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Sonia de la Provôté <span class="parti udi">(UDI)</span> :</td><td class="score_candidat">'+props.provote+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.duron+'" height="20" style="border:1px solid #ff67f1; background-color:#ff67f1; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Philippe Duron <span class="parti ps">(PS)</span> :</td><td class="score_candidat">'+props.duron+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.bruneau+'" height="20" style="border:1px solid #566eff; background-color:#566eff; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Joël Bruneau <span class="parti ump">(UMP)</span> :</td><td class="score_candidat">'+props.bruneau+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.casevitz+'" height="20" style="border:1px solid #ff1900; background-color:#ff1900; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Pierre Casevitz <span class="parti lo">(LO)</span> :</td><td class="score_candidat">'+props.casevitz+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.adam+'" height="20" style="border:1px solid #ff3278; background-color:#ff3278; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Etienne Adam <span class="parti dvg">(DVG)</span> :</td><td class="score_candidat">'+props.adam+' %</td><tr>' 
+	+'<tr><td class="barre"><canvas width="'+props.chapron+'" height="20" style="border:1px solid #777; background-color:#777; opacity: 0.6;"></canvas></td><td class="nom_candidat"> Philippe Chapron <span class="parti fn">(FN)</span> :</td><td class="score_candidat">'+props.chapron+' %</td><tr>' 
+	+'</table>'
+	: '<h4>Municipales 2014 à Caen</h4><p>Survolez un quartier</p>');
+};
+
+
+var map = L.mapbox.map('map', 'examples.map-9d0r2yso').setView([49.1868, -0.3455], 13);
+var groupe = L.geoJson().addTo(map);
+
+var data = new L.geoJson(zones,{style: style, onEachFeature: onEachFeature});
+var lo = new L.geoJson(zones,{style: styleLO, onEachFeature: onEachFeature});
+var dvg = new L.geoJson(zones,{style: styleDVG, onEachFeature: onEachFeature});
+var ps = new L.geoJson(zones,{style: stylePS, onEachFeature: onEachFeature});
+var eelv = new L.geoJson(zones,{style: styleEELV, onEachFeature: onEachFeature});
+var udi = new L.geoJson(zones,{style: styleUDI, onEachFeature: onEachFeature});
+var ump = new L.geoJson(zones,{style: styleUMP, onEachFeature: onEachFeature});
+var fn = new L.geoJson(zones,{style: styleFN, onEachFeature: onEachFeature});
+
+groupe.addLayer(data);
+
+info.addTo(map);
+map.scrollWheelZoom.disable();
+
+$('#tout').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(data);
+});
+
+$('#casevitz').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(lo);	
+});
+
+$('#adam').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(dvg);	
+});
+
+$('#duron').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(ps);
+});
+
+$('#lorphelin').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(eelv);	
+});
+
+$('#provote').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(udi);	
+});
+
+$('#bruneau').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(ump);	
+});
+
+$('#chapron').click(function(){
+	groupe.clearLayers();
+	groupe.addLayer(fn);	
+});
+
+</script>
+
+
+</body>
+</html>
